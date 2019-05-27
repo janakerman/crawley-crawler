@@ -8,6 +8,7 @@ require (
 	github.com/antchfx/xmlquery v1.0.0 // indirect
 	github.com/antchfx/xpath v0.0.0-20190319080838-ce1d48779e67 // indirect
 	github.com/aws/aws-lambda-go v1.10.0
+	github.com/aws/aws-sdk-go v1.19.38
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/google/uuid v1.1.1

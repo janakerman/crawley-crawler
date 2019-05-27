@@ -17,6 +17,11 @@ provider:
         - "sqs:SendMessage"
         - "sqs:GetQueueUrl"
       Resource: !GetAtt CrawlQueue.Arn
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "dynamodb:GetItem"
+      Resource: !GetAtt CrawlTable.Arn
 
 package:
  exclude:
@@ -33,6 +38,8 @@ functions:
             Fn::GetAtt:
               - CrawlQueue
               - Arn
+    environment:
+      CRAWL_TABLE_NAME: CrawlTable
 
 resources:
   Resources:
