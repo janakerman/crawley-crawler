@@ -1,7 +1,7 @@
 .PHONY: build clean deploy
 
 build: ## Build Lambda functions.
-	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/crawler functions/crawler/main.go
+	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/crawler functions/crawler/*
 
 clean:
 	rm -rf ./bin

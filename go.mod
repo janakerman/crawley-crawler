@@ -1,4 +1,4 @@
-module github.com/janakerman/crawley
+module janakerman/crawley
 
 go 1.12
 
@@ -14,7 +14,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
+	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/temoto/robotstxt v0.0.0-20180810133444-97ee4a9ee6ea // indirect
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092 // indirect
+	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	google.golang.org/appengine v1.6.0 // indirect
 )

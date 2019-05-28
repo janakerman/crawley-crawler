@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -13,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/google/uuid"
-	// "github.com/gocolly/colly"
 )
 
 var dynamoClient = dynamoSession()
@@ -21,6 +21,7 @@ var dynamoClient = dynamoSession()
 type urlParseRequest struct {
 	URL     string
 	CrawlID string
+	Depth   int
 }
 
 type crawlMeta struct {
@@ -51,12 +52,14 @@ func handleRecord(message events.SQSMessage) {
 		return
 	}
 
+	if max, _ := strconv.Atoi(os.Getenv("CRAWL_MAX_DEPTH")); urlParseReq.Depth >= max {
+		fmt.Printf("Depth (%d) great than CRAWL_MAX_DEPTH (%d) for URL: %s, CrawlID: %s\n", urlParseReq.Depth, max, urlParseReq.URL, urlParseReq.CrawlID)
+		return
+	}
+
 	fmt.Println("Crawling page for CrawlID:", crawlID)
 
-	// Locking?
-	scheduleForScrape(urlParseReq)
 	updateCrawMeta(urlParseReq)
-
 	crawlPage(urlParseReq)
 }
 
@@ -67,6 +70,10 @@ func parseRecord(message events.SQSMessage) urlParseRequest {
 
 	if req.CrawlID == "" {
 		req.CrawlID = uuid.New().String()
+	}
+
+	if req.Depth == 0 {
+		req.Depth = 1
 	}
 
 	return req
@@ -109,7 +116,7 @@ func scheduleForScrape(req urlParseRequest) {
 func updateCrawMeta(req urlParseRequest) crawlMeta {
 	table := os.Getenv("CRAWL_TABLE_NAME")
 	meta := crawlMeta{
-		URL:         req.URL,
+		URL:         NormaliseURL(req.URL),
 		LastCrawlID: req.CrawlID,
 	}
 
@@ -140,9 +147,16 @@ func updateCrawMeta(req urlParseRequest) crawlMeta {
 }
 
 func crawlPage(req urlParseRequest) []urlParseRequest {
-	// Scrape URLS and add to crawl queue.
-
-	return []urlParseRequest{}
+	urls := ScrapeURLs(req.URL)
+	requests := []urlParseRequest{}
+	for _, url := range urls {
+		requests = append(requests, urlParseRequest{
+			URL:     url.String(),
+			CrawlID: req.CrawlID,
+			Depth:   req.Depth + 1,
+		})
+	}
+	return requests
 }
 
 func dynamoSession() *dynamodb.DynamoDB {
