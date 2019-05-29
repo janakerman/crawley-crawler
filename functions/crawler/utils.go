@@ -6,8 +6,8 @@ import (
 )
 
 // NormaliseURL removes all but host & path from the URL.
-func NormaliseURL(fullUrl string) string {
-	url, err := url.ParseRequestURI(fullUrl)
+func NormaliseURL(fullURL string) string {
+	url, err := url.ParseRequestURI(fullURL)
 	if err != nil {
 		log.Fatal("Failed to parse URL.", err)
 	}
