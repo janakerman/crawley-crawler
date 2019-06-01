@@ -52,25 +52,26 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties: 
         AttributeDefinitions:
-          - AttributeName: "CrawlID"
-            AttributeType: "S"
           - AttributeName: "ParentURL"
             AttributeType: "S"
           - AttributeName: "ChildURL"
             AttributeType: "S"
-        KeySchema: 
           - AttributeName: "CrawlID"
-            KeyType: "HASH"
+            AttributeType: "S"
+        KeySchema: 
           - AttributeName: "ParentURL"
+            KeyType: "HASH"
+          - AttributeName: "ChildURL"
             KeyType: "RANGE"
         BillingMode: PAY_PER_REQUEST
         TableName: "CrawlTable"
         GlobalSecondaryIndexes:
-          - IndexName: Relationship
+          - IndexName: CrawlIDIndex
             KeySchema: 
-              - AttributeName: "ParentURL"
+              - AttributeName: "CrawlID"
                 KeyType: "HASH"
-              - AttributeName: "ChildURL"
-                KeyType: "RANGE"
             Projection:
               ProjectionType: ALL
+
+plugins:
+  - serverless-sam

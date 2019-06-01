@@ -28,7 +28,14 @@ type LinkRelationship struct {
 func Crawl(req URLParseRequest) {
 	currentURL, _ := url.Parse(req.URL)
 
-	urls := filterURLs(ScrapeURLs(req.URL))
+	urls := ScrapeURLs(req.URL)
+	urls = filterURLs(
+		urls,
+		isSameDomain(*currentURL),
+		isNotEmpty,
+	)
+	urls = relativeURLsToAbsolute(*currentURL, urls)
+
 	saveLinkRelationships(req.CrawlID, *currentURL, urls)
 
 	if isTooDeep(req) {
@@ -43,12 +50,16 @@ func saveLinkRelationships(crawlID string, parent url.URL, children []url.URL) [
 
 	rels := []LinkRelationship{}
 	for _, child := range children {
+		childString := child.String()
+		parentString := parent.String()
 		rel := LinkRelationship{
 			CrawlID:   crawlID,
-			ParentURL: parent.String(),
-			ChildURL:  child.String(),
+			ParentURL: parentString,
+			ChildURL:  childString,
 		}
 		rels = append(rels, rel)
+
+		fmt.Printf("CHILD: %v", rel)
 
 		item, err := dynamodbattribute.MarshalMap(rel)
 		if err != nil {
@@ -69,14 +80,52 @@ func saveLinkRelationships(crawlID string, parent url.URL, children []url.URL) [
 			os.Exit(1)
 		}
 
-		fmt.Printf("Saved LinkRelationship: %s -> %s to table: %s\n", parent.String(), child.String(), table)
+		fmt.Printf("Saved LinkRelationship: %s -> %s to table: %s\n\n", parent.String(), child.String(), table)
 	}
 
 	return rels
 }
 
-func filterURLs(urls []url.URL) []url.URL {
-	return urls
+func relativeURLsToAbsolute(parent url.URL, urls []url.URL) []url.URL {
+	fixedURLs := []url.URL{}
+	for _, url := range urls {
+		if url.Host == "" {
+			url.Scheme = parent.Scheme
+			url.Host = parent.Host
+		}
+		fixedURLs = append(fixedURLs, url)
+	}
+	return fixedURLs
+}
+
+func isNotEmpty(url url.URL) bool {
+	return url.Scheme != "" && url.Host != "" || url.Path != ""
+}
+
+func isSameDomain(parent url.URL) func(url url.URL) bool {
+	// TODO: Check contains instead.
+	return func(url url.URL) bool {
+		if url.Path == "/accessibility/" {
+			fmt.Println("")
+		}
+		return url.Host == "" || parent.Host == url.Host
+	}
+}
+
+func filterURLs(urls []url.URL, predicates ...func(url url.URL) bool) []url.URL {
+	filteredURLs := []url.URL{}
+	for _, url := range urls {
+		include := true
+		for _, predicate := range predicates {
+			include = include && predicate(url)
+		}
+		if include {
+			filteredURLs = append(filteredURLs, url)
+		} else {
+			fmt.Printf("URL '%s' ignored. Failed to match predicate.\n", url.String())
+		}
+	}
+	return filteredURLs
 }
 
 func scheduleChildren(req URLParseRequest, urls []url.URL) []URLParseRequest {
@@ -94,7 +143,7 @@ func scheduleChildren(req URLParseRequest, urls []url.URL) []URLParseRequest {
 }
 
 func scheduleForScrape(req URLParseRequest) {
-	fmt.Println("Add to scrape queue")
+	fmt.Println("Add URL '%s' to scrape queue.", req.URL)
 }
 
 func isTooDeep(req URLParseRequest) bool {
