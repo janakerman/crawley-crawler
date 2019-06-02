@@ -18,8 +18,8 @@ debug: clean ## Build a debug binary and package it up.
 	sls sam export --output ./template.yml
 	sam local invoke -d 5986  -e test/events/crawlRequest.json --env-vars env.json --region eu-west-2 --debugger-path bin --debug-args -delveAPI=2
 
-run-local:
-    sam local invoke -d 5986  -e test/events/crawlRequest.json --env-vars env.json --region eu-west-2 --debugger-path bin --debug-args -delveAPI=2
+invoke:
+	sls invoke  -e test/events/crawlRequest.json --env CRAWL_TABLE_NAME=CrawlTable -f crawler
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

@@ -40,7 +40,7 @@ functions:
               - Arn
     environment:
       CRAWL_TABLE_NAME: CrawlTable
-      CRAWL_MAX_DEPTH: 10
+      CRAWL_MAX_DEPTH: 3
 
 resources:
   Resources:
@@ -54,24 +54,15 @@ resources:
         AttributeDefinitions:
           - AttributeName: "ParentURL"
             AttributeType: "S"
-          - AttributeName: "ChildURL"
-            AttributeType: "S"
           - AttributeName: "CrawlID"
             AttributeType: "S"
         KeySchema: 
-          - AttributeName: "ParentURL"
+          - AttributeName: "CrawlID"
             KeyType: "HASH"
-          - AttributeName: "ChildURL"
+          - AttributeName: "ParentURL"
             KeyType: "RANGE"
         BillingMode: PAY_PER_REQUEST
         TableName: "CrawlTable"
-        GlobalSecondaryIndexes:
-          - IndexName: CrawlIDIndex
-            KeySchema: 
-              - AttributeName: "CrawlID"
-                KeyType: "HASH"
-            Projection:
-              ProjectionType: ALL
 
 plugins:
   - serverless-sam

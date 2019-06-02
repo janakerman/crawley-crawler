@@ -16,7 +16,7 @@ import (
 type LinkRelationship struct {
 	CrawlID   string
 	ParentURL string
-	ChildURL  string
+	ChildURLs []string
 }
 
 // Crawl takes a URL and saves the child URLs it references.
@@ -27,6 +27,10 @@ type LinkRelationship struct {
 // 5. Schedule the child URLs to crawling.
 func Crawl(req URLParseRequest) {
 	currentURL, _ := url.Parse(req.URL)
+
+	if isCycling(req.CrawlID, *currentURL) {
+		return
+	}
 
 	urls := ScrapeURLs(req.URL)
 	urls = filterURLs(
@@ -45,45 +49,42 @@ func Crawl(req URLParseRequest) {
 	scheduleChildren(req, urls)
 }
 
-func saveLinkRelationships(crawlID string, parent url.URL, children []url.URL) []LinkRelationship {
+func saveLinkRelationships(crawlID string, parent url.URL, children []url.URL) LinkRelationship {
 	table := os.Getenv("CRAWL_TABLE_NAME")
 
-	rels := []LinkRelationship{}
+	childrenString := []string{}
 	for _, child := range children {
-		childString := child.String()
-		parentString := parent.String()
-		rel := LinkRelationship{
-			CrawlID:   crawlID,
-			ParentURL: parentString,
-			ChildURL:  childString,
-		}
-		rels = append(rels, rel)
-
-		fmt.Printf("CHILD: %v", rel)
-
-		item, err := dynamodbattribute.MarshalMap(rel)
-		if err != nil {
-			fmt.Println("Error marshalling LinkRelationship:")
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		input := &dynamodb.PutItemInput{
-			Item:      item,
-			TableName: aws.String(table),
-		}
-
-		_, err = dynamoClient.PutItem(input)
-		if err != nil {
-			fmt.Println("Got error calling PutItem:")
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Printf("Saved LinkRelationship: %s -> %s to table: %s\n\n", parent.String(), child.String(), table)
+		childrenString = append(childrenString, child.String())
 	}
 
-	return rels
+	rel := LinkRelationship{
+		CrawlID:   crawlID,
+		ParentURL: parent.String(),
+		ChildURLs: childrenString,
+	}
+
+	item, err := dynamodbattribute.MarshalMap(rel)
+	if err != nil {
+		fmt.Println("Error marshalling LinkRelationship:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	input := &dynamodb.PutItemInput{
+		Item:      item,
+		TableName: aws.String(table),
+	}
+
+	_, err = dynamoClient.PutItem(input)
+	if err != nil {
+		fmt.Println("Got error calling PutItem:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("Saved LinkRelationships: %v to table: %s\n\n", rel, table)
+
+	return rel
 }
 
 func relativeURLsToAbsolute(parent url.URL, urls []url.URL) []url.URL {
@@ -143,7 +144,7 @@ func scheduleChildren(req URLParseRequest, urls []url.URL) []URLParseRequest {
 }
 
 func scheduleForScrape(req URLParseRequest) {
-	fmt.Println("Add URL '%s' to scrape queue.", req.URL)
+	fmt.Printf("Add URL '%s' to scrape queue.\n", req.URL)
 }
 
 func isTooDeep(req URLParseRequest) bool {
@@ -159,4 +160,38 @@ func dynamoSession() *dynamodb.DynamoDB {
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	return dynamodb.New(sess)
+}
+
+func isCycling(crawlID string, url url.URL) bool {
+	table := os.Getenv("CRAWL_TABLE_NAME")
+	result, err := dynamoClient.GetItem(&dynamodb.GetItemInput{
+		TableName: &table,
+		Key: map[string]*dynamodb.AttributeValue{
+			"CrawlID": {
+				S: aws.String(crawlID),
+			},
+			"ParentURL": {
+				S: aws.String(url.String()),
+			},
+		},
+	})
+
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(fmt.Sprintf("Failed get record"))
+	}
+
+	item := LinkRelationship{}
+
+	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+	}
+
+	if item.ParentURL == "" {
+		return false
+	}
+
+	fmt.Printf("Already visited URL '%s' in crawl '%s'.\n", url.String(), crawlID)
+	return true
 }
