@@ -2,6 +2,9 @@
 
 build: ## Build Lambda functions.
 	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/crawler functions/crawler/*
+	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/subscribe functions/subscribe/*
+	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/stream functions/stream/*
+
 
 clean:
 	rm -rf ./bin
@@ -11,12 +14,15 @@ deploy: clean build ## Build and deploy lambda functions.
 
 debug: clean ## Build a debug binary and package it up.
 	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/crawler functions/crawler/*
+	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/subscribe functions/subscribe/*
+	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/stream functions/stream/*
+
 	if [ ! -f bin/dlv ]; then \
 		GOARCH=amd64 GOOS=linux go build -o bin/dlv "-ldflags=-s -X main.Build=04834a781abd1388c21670d2c1eb49045d5f1b04" github.com/go-delve/delve/cmd/dlv; \
 	fi
 	sls package
 	sls sam export --output ./template.yml
-	sam local invoke -d 5986  -e test/events/crawlRequest.json --env-vars env.json --region eu-west-2 --debugger-path bin --debug-args -delveAPI=2
+	#sam local invoke -d 5986  -e test/events/crawlRequest.json --env-vars env.json --region eu-west-2 --debugger-path bin --debug-args -delveAPI=2
 
 invoke:
 	sls invoke  -e test/events/crawlRequest.json --env-vars env.json -f crawler

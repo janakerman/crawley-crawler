@@ -11,7 +11,7 @@ provider:
   name: aws
   runtime: go1.x
   region: eu-west-2
-  iamRoleStatements:
+  iamRoleStatements: # TODO: Segregate roles for functions.
     - Effect: "Allow"
       Action:
         - "sqs:SendMessage"
@@ -19,19 +19,23 @@ provider:
       Resource: !GetAtt CrawlQueue.Arn
     - Effect: "Allow"
       Action:
-        - "dynamodb:PutItem"
-        - "dynamodb:GetItem"
-      Resource: !GetAtt CrawlTable.Arn
+        - "dynamodb:*"
+      Resource: 
+        - !GetAtt CrawlTable.Arn
+        - !GetAtt CrawlSubscriptionTable.Arn
+        - !Join [ "/", [ !GetAtt CrawlSubscriptionTable.Arn, "index", "CrawlIDIndex" ] ]
 
 package:
- exclude:
+  individually: true
+  exclude:
    - ./**
- include:
-   - ./bin/**
 
 functions:
   crawler:
     handler: bin/crawler
+    package:
+      include:
+        - bin/crawler
     events:
       - sqs:
           arn:
@@ -43,6 +47,38 @@ functions:
       CRAWL_MAX_DEPTH: 3
       CRAWL_QUEUE_URL: !Ref CrawlQueue
 
+  subscribe:
+    handler: bin/subscribe
+    package:
+      include:
+        - bin/subscribe
+    events:
+        - websocket:
+            route: $connect
+        - websocket:
+            route: $disconnect
+        - websocket:
+            route: $default
+        - websocket:
+            route: subscribe
+    environment:
+      CRAWL_SUB_TABLE_NAME: CrawlSubTable
+
+  stream:
+    handler: bin/stream
+    package:
+      include:
+        - bin/stream
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt CrawlTable.StreamArn
+          batchSize: 1
+    environment:
+      CRAWL_SUB_TABLE_NAME: CrawlSubTable
+      CRAWL_SUB_GSI_NAME: CrawlIDIndex
+
+
 resources:
   Resources:
     CrawlQueue:
@@ -52,11 +88,13 @@ resources:
         RedrivePolicy:
           deadLetterTargetArn: !GetAtt CrawlDeadLetterQueue.Arn
           maxReceiveCount: 1
+
     CrawlDeadLetterQueue:
       Type: "AWS::SQS::Queue"
       Properties:
         QueueName: "CrawlRequestDLQ"
         MessageRetentionPeriod: 7200 # 2 hours
+
     CrawlTable:
       Type: AWS::DynamoDB::Table
       Properties: 
@@ -75,6 +113,31 @@ resources:
         TimeToLiveSpecification:
           AttributeName: ExpirationDate
           Enabled: true
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+
+    CrawlSubscriptionTable:
+      Type: AWS::DynamoDB::Table
+      Properties: 
+        AttributeDefinitions:
+          - AttributeName: "ConnectionID"
+            AttributeType: "S"
+          - AttributeName: "CrawlID"
+            AttributeType: "S"
+        KeySchema: 
+          - AttributeName: "ConnectionID"
+            KeyType: "HASH"
+          - AttributeName: "CrawlID"
+            KeyType: "RANGE"
+        BillingMode: PAY_PER_REQUEST
+        TableName: "CrawlSubTable"
+        GlobalSecondaryIndexes:
+          - IndexName: CrawlIDIndex
+            Projection:
+              ProjectionType: ALL
+            KeySchema: 
+            - AttributeName: "CrawlID"
+              KeyType: "HASH"
 
 plugins:
   - serverless-sam
