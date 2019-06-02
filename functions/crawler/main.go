@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var dynamoClient = dynamoSession()
+var dynamoClient = DynamoSession()
 
 // URLParseRequest represents a request to crawl a specific page.
 type URLParseRequest struct {
