@@ -44,7 +44,12 @@ func visitURLs(response *http.Response, visitor Visitor) {
 			if isAnchor {
 				for _, attr := range token.Attr {
 					if attr.Key == "href" {
-						url, _ := url.Parse(attr.Val)
+						href := attr.Val
+						url, error := url.Parse(href)
+						if error == nil {
+							fmt.Printf("Error parsing <a> href: %s", href)
+							break
+						}
 						visitor(*url)
 					}
 				}
