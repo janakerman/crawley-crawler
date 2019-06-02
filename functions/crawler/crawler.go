@@ -37,6 +37,10 @@ func Crawl(req URLParseRequest) {
 	)
 	filteredURLs = relativeURLsToAbsolute(*currentURL, filteredURLs)
 
+	if len(filteredURLs) == 0 {
+		return
+	}
+
 	saveLinkRelationships(req.CrawlID, *currentURL, filteredURLs)
 
 	if isTooDeep(req) {

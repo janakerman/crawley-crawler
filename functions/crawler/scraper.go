@@ -46,8 +46,9 @@ func visitURLs(response *http.Response, visitor Visitor) {
 					if attr.Key == "href" {
 						href := attr.Val
 						url, error := url.Parse(href)
-						if error == nil {
-							fmt.Printf("Error parsing <a> href: %s", href)
+						if error != nil {
+							fmt.Printf("Error parsing <a> href '%s'\n:", href)
+							fmt.Println(error.Error())
 							break
 						}
 						visitor(*url)

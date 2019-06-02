@@ -20,7 +20,7 @@ debug: clean ## Build a debug binary and package it up.
 
 invoke:
 	sls invoke  -e test/events/crawlRequest.json --env-vars env.json -f crawler
-	# aws sqs send-message --queue-url https://sqs.eu-west-2.amazonaws.com/743259902374/MyQueue --message-body "{\"URL\":\"https://www.bbc.co.uk/news\"}" --region eu-west-2
+	# aws sqs send-message --queue-url https://sqs.eu-west-2.amazonaws.com/743259902374/CrawlRequestQ --message-body "{\"URL\":\"https://www.bbc.co.uk/news\"}" --region eu-west-2
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

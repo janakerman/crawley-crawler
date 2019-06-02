@@ -22,5 +22,5 @@ sls invoke -f crawler --path test/events/crawlRequest.json --env CRAWL_TABLE_NAM
 * Batch write of items.
 * Correct following of sub/parent domains.
 * Unit tests on depth etc.
-* Checking of previously parsed nodes? Add additional information? At the moment DynamoDB will simply be acting
-as a queue - kind of pointless.
+* Checking of previously parsed nodes? Add additional information? At the moment DynamoDB will simply be acting as a queue - kind of pointless.
+* Add TTL to crawl records. Add overall crawl meta to table when started (initial API gateway lambda)
