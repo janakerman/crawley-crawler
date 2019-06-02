@@ -27,21 +27,23 @@ func Crawl(req URLParseRequest) {
 		return
 	}
 
-	urls := ScrapeURLs(req.URL)
-	urls = filterURLs(
-		urls,
+	filteredURLs := []url.URL{}
+	filterURLs(
+		ScrapeURLs(req.URL),
+		&filteredURLs,
 		isSameDomain(*currentURL),
+		isDupelicate(&filteredURLs),
 		isNotEmpty,
 	)
-	urls = relativeURLsToAbsolute(*currentURL, urls)
+	filteredURLs = relativeURLsToAbsolute(*currentURL, filteredURLs)
 
-	saveLinkRelationships(req.CrawlID, *currentURL, urls)
+	saveLinkRelationships(req.CrawlID, *currentURL, filteredURLs)
 
 	if isTooDeep(req) {
 		return
 	}
 
-	scheduleChildren(req, urls)
+	scheduleChildren(req, filteredURLs)
 }
 
 func relativeURLsToAbsolute(parent url.URL, urls []url.URL) []url.URL {
@@ -54,6 +56,17 @@ func relativeURLsToAbsolute(parent url.URL, urls []url.URL) []url.URL {
 		fixedURLs = append(fixedURLs, url)
 	}
 	return fixedURLs
+}
+
+func isDupelicate(urls *[]url.URL) func(url url.URL) bool {
+	return func(url url.URL) bool {
+		for _, otherURL := range *urls {
+			if url == otherURL {
+				return false
+			}
+		}
+		return true
+	}
 }
 
 func isNotEmpty(url url.URL) bool {
@@ -70,15 +83,14 @@ func isSameDomain(parent url.URL) func(url url.URL) bool {
 	}
 }
 
-func filterURLs(urls []url.URL, predicates ...func(url url.URL) bool) []url.URL {
-	filteredURLs := []url.URL{}
+func filterURLs(urls []url.URL, filteredURLs *[]url.URL, predicates ...func(url url.URL) bool) *[]url.URL {
 	for _, url := range urls {
 		include := true
 		for _, predicate := range predicates {
 			include = include && predicate(url)
 		}
 		if include {
-			filteredURLs = append(filteredURLs, url)
+			*filteredURLs = append(*filteredURLs, url)
 		} else {
 			fmt.Printf("URL '%s' ignored. Failed to match predicate.\n", url.String())
 		}
@@ -95,13 +107,11 @@ func scheduleChildren(req URLParseRequest, urls []url.URL) []URLParseRequest {
 			Depth:   req.Depth + 1,
 		}
 		requests = append(requests, request)
-		scheduleForScrape(request)
 	}
-	return requests
-}
 
-func scheduleForScrape(req URLParseRequest) {
-	fmt.Printf("Add URL '%s' to scrape queue.\n", req.URL)
+	scheduleForScrape(requests)
+
+	return requests
 }
 
 func isTooDeep(req URLParseRequest) bool {

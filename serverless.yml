@@ -41,6 +41,7 @@ functions:
     environment:
       CRAWL_TABLE_NAME: CrawlTable
       CRAWL_MAX_DEPTH: 3
+      CRAWL_QUEUE_URL: !Ref CrawlQueue
 
 resources:
   Resources:
