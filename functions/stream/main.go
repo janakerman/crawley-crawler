@@ -137,7 +137,7 @@ func getSubscribers(crawlID string) []Subscription {
 }
 
 func notifySubscribers(relationship LinkRelationship, subscribers []Subscription) {
-	callGateway := func(endpoint, connectionID string, payload []byte) {
+	callGateway := func(endpoint, connectionID, crawlID string, payload []byte) {
 		fmt.Printf("Notifying endpoint: %s payload: %s\n", endpoint, string(payload))
 
 		apiGatewayClient := APIGatewayClient(endpoint)
@@ -149,6 +149,30 @@ func notifySubscribers(relationship LinkRelationship, subscribers []Subscription
 
 		if error != nil {
 			fmt.Println("Error posting to gateway:", error.Error())
+
+			// TODO: Check if 410 GONE - connectionID disconnected (how?)
+			// TODO: Add TTL for records so that they age off after some period longer than the connection timeout.
+			fmt.Printf("Received 410 GONE error - connectionID '%s' is stale\n", connectionID)
+
+			table := os.Getenv("CRAWL_SUB_TABLE_NAME")
+			_, error := dynamoClient.DeleteItem(&dynamodb.DeleteItemInput{
+				Key: map[string]*dynamodb.AttributeValue{
+					"ConnectionID": {
+						S: aws.String(connectionID),
+					},
+					"CrawlID": {
+						S: aws.String(crawlID),
+					},
+				},
+				TableName: &table,
+			})
+
+			if error != nil {
+				fmt.Printf("Error deleting stale connectionID: '%s' from subscription table: '%s'. Cause: %s\n", connectionID, table, error.Error())
+
+			} else {
+				fmt.Printf("Successfully deleted stale connectionID: '%s' from subscription table: '%s'\n", connectionID, table)
+			}
 		} else {
 			fmt.Println("Posted to gateway. ", output.String())
 		}
@@ -158,7 +182,7 @@ func notifySubscribers(relationship LinkRelationship, subscribers []Subscription
 
 	for _, sub := range subscribers {
 		payload, _ := json.Marshal(relationship)
-		callGateway(sub.GatewayEndpoint, sub.ConnectionID, payload)
+		callGateway(sub.GatewayEndpoint, sub.ConnectionID, sub.CrawlID, payload)
 	}
 }
 
