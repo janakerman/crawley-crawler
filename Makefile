@@ -4,6 +4,7 @@ build: ## Build Lambda functions.
 	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/crawler functions/crawler/*
 	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/subscribe functions/subscribe/*
 	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/stream functions/stream/*
+	GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/schedule functions/schedule/*
 
 
 clean:
@@ -16,6 +17,7 @@ debug: clean ## Build a debug binary and package it up.
 	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/crawler functions/crawler/*
 	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/subscribe functions/subscribe/*
 	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/stream functions/stream/*
+	GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o bin/schedule functions/schedule/*
 
 	if [ ! -f bin/dlv ]; then \
 		GOARCH=amd64 GOOS=linux go build -o bin/dlv "-ldflags=-s -X main.Build=04834a781abd1388c21670d2c1eb49045d5f1b04" github.com/go-delve/delve/cmd/dlv; \

@@ -73,10 +73,22 @@ functions:
       - stream:
           type: dynamodb
           arn: !GetAtt CrawlTable.StreamArn
-          batchSize: 1
+          batchSize: 1 # TODO: Increase.
     environment:
       CRAWL_SUB_TABLE_NAME: CrawlSubTable
       CRAWL_SUB_GSI_NAME: CrawlIDIndex
+
+  schedule:
+    handler: bin/schedule
+    package:
+      include:
+        - bin/schedule
+    events:
+      - http:
+          path: crawl
+          method: post
+    environment:
+      CRAWL_QUEUE_URL: !Ref CrawlQueue
 
 
 resources:
