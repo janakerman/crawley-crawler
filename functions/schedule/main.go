@@ -14,8 +14,8 @@ import (
 
 // CrawlRequest is a request.
 type CrawlRequest struct {
-	RootURL string
-	CrawlID string
+	RootURLs []string
+	CrawlID  string
 }
 
 // URLParseRequest represents a request to crawl a specific page.
@@ -53,25 +53,27 @@ func handleEvent(event events.APIGatewayProxyRequest) (Response, error) {
 
 	fmt.Printf("Received CrawlRequest: %#v\n", request)
 
-	if request.CrawlID == "" || request.RootURL == "" {
+	if request.CrawlID == "" || len(request.RootURLs) == 0 {
 		return response("Missing values", 400), nil
 	}
 
-	message := URLParseRequest{
-		URL:     request.RootURL,
-		CrawlID: request.CrawlID,
-		Depth:   1,
+	for _, url := range request.RootURLs {
+		message := URLParseRequest{
+			URL:     url,
+			CrawlID: request.CrawlID,
+			Depth:   1,
+		}
+
+		json, _ := json.Marshal(message)
+		jsonString := string(json)
+
+		fmt.Printf("Posting initial URL parse to parse queue: %#v\n", message)
+
+		sqsClient().SendMessage(&sqs.SendMessageInput{
+			QueueUrl:    &queueURL,
+			MessageBody: &jsonString,
+		})
 	}
-
-	json, _ := json.Marshal(message)
-	jsonString := string(json)
-
-	fmt.Printf("Posting initial URL parse to parse queue: %#v\n", message)
-
-	sqsClient().SendMessage(&sqs.SendMessageInput{
-		QueueUrl:    &queueURL,
-		MessageBody: &jsonString,
-	})
 
 	return response("", 200), nil
 }

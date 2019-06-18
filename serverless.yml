@@ -87,6 +87,7 @@ functions:
       - http:
           path: crawl
           method: post
+    cors: true
     environment:
       CRAWL_QUEUE_URL: !Ref CrawlQueue
 
