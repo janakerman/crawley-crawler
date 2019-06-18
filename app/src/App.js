@@ -8,8 +8,20 @@ import Form from 'react-bootstrap/Form';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 
+import Graph from './Graph'
+
 const badPracticeURL = 'https://higkb65cx1.execute-api.eu-west-2.amazonaws.com/dev'
 const badPracticeWebsocketURL = 'wss://4epq4ctp9a.execute-api.eu-west-2.amazonaws.com/dev'
+
+const testEvents = [
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/cloudformation-dynamodb-data-ingest/","https://janakerman.co.uk/relational-data-in-dynamodb/","https://janakerman.co.uk/serverless-acceptance-test-environments-jest/","https://janakerman.co.uk/docker-git-clone/"]},
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk/cloudformation-dynamodb-data-ingest/","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/relational-data-in-dynamodb/","https://janakerman.co.uk/static/custom-resource-09600b5a1e0210ce19dffc4fa671e311-ed5d9.jpeg","https://janakerman.co.uk/static/stack-diagram-2c0a88c8645d5b0946c678ee2878ac69-0cef2.jpeg","https://janakerman.co.uk/relational-data-in-dynamodb/"]},
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk/serverless-acceptance-test-environments-jest/","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/docker-git-clone/","https://janakerman.co.uk/relational-data-in-dynamodb/"]},
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk/docker-git-clone/","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/serverless-acceptance-test-environments-jest/"]},
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk/relational-data-in-dynamodb/","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/serverless-acceptance-test-environments-jest/","https://janakerman.co.uk/cloudformation-dynamodb-data-ingest/"]},
+  {"CrawlID":"c8bdff31-562c-4930-a2aa-74a568263b21","ParentURL":"https://janakerman.co.uk/","ChildURLs":["https://janakerman.co.uk/","https://janakerman.co.uk/cloudformation-dynamodb-data-ingest/","https://janakerman.co.uk/relational-data-in-dynamodb/","https://janakerman.co.uk/serverless-acceptance-test-environments-jest/","https://janakerman.co.uk/docker-git-clone/"]}
+]
+
 
 function uuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -128,6 +140,9 @@ class AppContent extends React.Component {
             {isLoading ? 'Loading…' : 'Go'}
           </Button>
         </Col>
+      </Row>
+      <Row>
+        <Graph/>
       </Row>
     </Container>)
   }
