@@ -9,6 +9,7 @@ import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 
 const badPracticeURL = 'https://higkb65cx1.execute-api.eu-west-2.amazonaws.com/dev'
+const badPracticeWebsocketURL = 'wss://4epq4ctp9a.execute-api.eu-west-2.amazonaws.com/dev'
 
 function uuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -37,7 +38,6 @@ class AppContent extends React.Component {
   }
 
   inputEntered(event) {
-    console.log(event)
     if (event.key === "Enter") {
       event.preventDefault()
       this.setState((state) => ({
@@ -49,30 +49,51 @@ class AppContent extends React.Component {
   }
 
   doCrawl() {
+    const uuid = uuidv4()
+    const data = {
+      RootURLs: this.state.sites,
+      CrawlID: uuid,
+    }
 
     this.setState({
       ...this.state,
       isLoading: true
     })
-
-    const uuid = uuidv4()
-
-    const data = {
-      RootURLs: this.state.sites, // TODO: Update lambda to handle multiple sites.
-      CrawlID: uuid,
-    }
-
-    console.log(`Posting crawl: ${JSON.stringify(data)}`)
-
-    fetch(`${badPracticeURL}/crawl`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-      mode: 'no-cors',
-      headers:{
-        'Content-Type': 'application/json'
-      }
+    
+    this.subscribe(uuid).then(() => {
+      console.log(`Posting crawl: ${JSON.stringify(data)}`)
+      fetch(`${badPracticeURL}/crawl`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        mode: 'no-cors',
+        headers:{
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(rest => console.log(`Response: ${rest.status}`))
     })
-    .then(rest => console.log(`Response: ${rest.status}`))
+  }
+
+  subscribe(crawlID) {
+    return new Promise((resolve) => {
+      console.log('Opening websocket connection')
+      const webSocket = new WebSocket(badPracticeWebsocketURL)
+
+      webSocket.onmessage = event => {
+        var msg = JSON.parse(event.data);
+        console.log(`Received message: ${JSON.stringify(msg)}`)
+      }
+
+      webSocket.onopen = event => {
+        console.log('Websocket connected')
+
+        const subscribtion = { action:"subscribe", CrawlID: crawlID }
+        console.log(`Sending message: ${JSON.stringify(subscribtion)}`)
+        webSocket.send(JSON.stringify(subscribtion));
+
+        resolve()
+      };
+    })
   }
 
   render() {
