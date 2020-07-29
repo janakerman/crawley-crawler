@@ -1,6 +1,6 @@
 # CRAWLEY-CRAWLER
 
-A serverless web crawler.
+A serverless web crawler...
 
 ## Setup
 
